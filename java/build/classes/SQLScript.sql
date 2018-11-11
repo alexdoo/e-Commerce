@@ -1,5 +1,5 @@
-CREATE DATABASE testing;
-USE testing;
+CREATE DATABASE test;
+USE test;
 
 CREATE TABLE BillingInfo (
     Id INT                          NOT NULL AUTO_INCREMENT,
@@ -34,7 +34,7 @@ CREATE TABLE Category (
 );
 
 CREATE TABLE Item (
-    Id INT				NOT NULL AUTO_INCREMENT,
+    Id INT				NOT NULL,
     SellerId INT 			NOT NULL,
     CategoryId INT 			NOT NULL,
     Price DECIMAL			NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE Item (
         ON UPDATE CASCADE,
     FOREIGN KEY (CategoryId) REFERENCES Category (Id)
         ON UPDATE CASCADE,
-    CHECK (Id > 0 AND SellerId > 0 AND Price > 0 AND CategoryId > 0)
+    CHECK (Id > 0 AND SellerID > 0 AND Price > 0 AND CategoryId > 0)
 );
 
 CREATE TABLE Inventory (
@@ -68,7 +68,7 @@ CREATE TABLE Customers (
     FirstName CHAR(20)		NOT NULL,
     Email CHAR(40)		NOT NULL,
     PRIMARY KEY (Id),
-    UNIQUE (BillingInfoId),
+    UNIQUE (BillingInfoID),
     FOREIGN KEY (BillingInfoId) REFERENCES BillingInfo (Id)
         ON UPDATE CASCADE,
     CHECK (Id > 0 AND BillingInfoId > 0)
@@ -90,7 +90,7 @@ CREATE TABLE ShoppingCart (
         ON UPDATE CASCADE,
     CHECK (CustomerId > 0 AND ItemId > 0 AND SellerId > 0 AND Quantity > 0 AND Price > 0 AND TotalPrice > 0),
     CHECK (TotalPrice >= Price), 
-    CHECK ( (SELECT Quantity FROM Inventory WHERE ItemId = Inventory (ItemId) AND SellerId = Inventory (SellerId)) >= Quantity)
+    CHECK ( (SELECT Quantity FROM Inventory WHERE ItemId = Inventory (ItemID) AND SellerId = Inventory (SellerId)) >= Quantity)
 );
 
 CREATE TABLE Orders (
@@ -109,13 +109,9 @@ CREATE TABLE Orders (
 CREATE TABLE Ordered (
     OrderId INT                 NOT NULL,
     ItemId INT                  NOT NULL,
-    SellerId INT                NOT NULL.
-    Quantity INT                NOT NULL,
-    Price DECIMAL               NOT NULL,
-    PRIMARY KEY (OrderId, ItemId, SellerId),
+    PRIMARY KEY (OrderId, ItemId),
     FOREIGN KEY (OrderId) REFERENCES Orders (Id),
-    FOREIGN KEY (ItemId) REFERENCES Item (Id),
-    FOREIGN KEY (SellerId) REFERENCES Seller (Id)
+    FOREIGN KEY (ItemID) REFERENCES Item (Id)
 );
 
 CREATE TABLE Shipment (
@@ -141,7 +137,7 @@ CREATE TABLE Reviews (
     UNIQUE (CustomerId, ItemId), 
     FOREIGN KEY (ItemId) REFERENCES Item (Id)
         ON UPDATE CASCADE,
-    FOREIGN KEY (CustomerId) REFERENCES Customers (Id)
+    FOREIGN KEY (CustomerID) REFERENCES Customers (Id)
         ON UPDATE CASCADE,
     FOREIGN KEY (SellerId) REFERENCES Seller (Id)
         ON UPDATE CASCADE,

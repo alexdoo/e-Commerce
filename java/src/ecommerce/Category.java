@@ -39,6 +39,6 @@ public class Category {
     
     @Override
     public String toString(){
-        return "'" + Arrays.toString(categoryName) + "'";
+        return ID + ", " + Arrays.toString(categoryName);
     }
 }

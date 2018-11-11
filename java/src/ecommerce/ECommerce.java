@@ -1,56 +1,48 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package ecommerce;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.Scanner;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
+import java.text.SimpleDateFormat;
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 
-/**
- *
- * @author Alex
- */
-public class ECommerce {
-
-    static SQLHandler sql = new SQLHandler();
-    static User user = new User();
-    static Seller seller = new Seller();
-    static Customers customer = new Customers();
-    static BillingInfo billing = new BillingInfo();
-
-    public static void main(String[] args) {
+public class Ecommerce extends Application {
+    
+    @Override
+    public void start(Stage primaryStage) {
+        User user = new User();
+        Seller seller = new Seller();
         Item item = new Item();
         Inventory inventory = new Inventory();
         Category category = new Category();
         Reviews review = new Reviews();
         Customers customer = new Customers();
         ArrayList<ShoppingCart> cart = new ArrayList<>();
-        ArrayList<Orders> order = new ArrayList<>();
+        BillingInfo billing = new BillingInfo();
+        Orders order = new Orders();
         ArrayList<Ordered> ordered = new ArrayList<>();
         Shipment shipping = new Shipment();
-        SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-
+        
+        SQLHandler sql = new SQLHandler();
         // Read SQL script and create relations
         String parse = new String();
         String query = new String();
-
-        sql.openConnection();
         File file = new File("src/SQLScript.sql");
-        // parses queries and executes them in db (assumes script is written properly)
+            // parses queries and executes them in db (assumes script is written properly)
+            // may replace if preloaded database is used.
         try (Scanner scan = new Scanner(file)) {
             while (scan.hasNextLine()) {
                 parse = scan.nextLine();
                 query += parse.replaceAll("\t+", " ");
-                if (parse.contains(";")) {
+                if (parse.contains(";")){
                     query = query.replace(";", "");
                     sql.modifyData(query);
                     query = "";
@@ -59,377 +51,264 @@ public class ECommerce {
         } catch (FileNotFoundException ex) {
             System.out.println("SQL Script file not found.");
         }
-        sql.closeConnection();
-
-        Scanner sc = new Scanner(System.in);
-        String result = new String();
-        while (true) {
-            System.out.print("Are you an existing user? ");
-            result = sc.nextLine();
-            if (result.compareToIgnoreCase("yes") == 0) {
-                while (user.getCustomerID() == 0 && user.getSellerID() == 0) {
-                    login();
-                    sql.closeConnection();
-                    sql.openConnection();
-                    sql.getTable("SELECT * FROM User WHERE Username = '" + new String(user.getUsername())
-                            + "' AND Password = '" + new String(user.getPassword()) + "'");
-                    if (sql.next()) {
-                        user = sql.getUser();
-                    }
-                    sql.closeConnection();
-                    sql.openConnection();
-
-                    if (user.getCustomerID() > 0) {
-                        // if user is a customer
-                        String usage;
-                        usage = "Command Usage: \n\t"
-                                + "help : prints this usage\n\t"
-                                + "shop : lists items that are available\n\t"
-                                + "account : shows customer's account info\n\t"
-                                + "edit billinginfo [attribute(no spaces)] [new value]: edits [attribute] of billing information\n\t"
-                                + "show cart : shows shopping cart\n\t"
-                                + "add cart [item id] [seller id] [quantity]: adds [quantity] item(s) to shopping cart\n\t"
-                                + "edit cart [index] [quantity] : edits shopping cart's quantity for a item at [index]\n\t"
-                                + "checkout : orders content in shopping cart\n\t"
-                                + "show orders : shows order\n\t"
-                                + "logout : exits application";
-                        System.out.println(usage);
-
-                        while (true) {
-                            System.out.print("Enter a command: ");
-                            result = sc.nextLine();
-                            String cmd[];
-                            cmd = result.split(" ");
-                            if (cmd[0].compareToIgnoreCase("help") == 0) {
-                                System.out.println(usage);
-                            } else if (cmd[0].compareToIgnoreCase("shop") == 0) {
-                                sql.closeConnection();
-                                sql.openConnection();
-                                sql.getTable("SELECT * FROM Item");
-                                System.out.println("----------------------SHOP----------------------");
-                                System.out.printf("%-10s |\t %-20s |\t %-10s |\t %12s |\t %s\n",
-                                        "Item ID", "Item Name", "Seller ID", "Price", "Item Description");
-                                System.out.println("------------------------------------------------");
-                                while (sql.next()) {
-                                    item = sql.getItem();
-                                    System.out.printf("%-10d  \t %-20s  \t %-10d  \t $%10.2f  \t " + new String(item.getDescription()),
-                                            item.getID(), new String(item.getItemName()), item.getSellerID(), item.getPrice());
-                                }
-                                System.out.println("------------------------------------------------");
-                                sql.closeConnection();
-                                sql.openConnection();
-                            } else if (cmd[0].compareToIgnoreCase("account") == 0) {
-                                System.out.println("Address: " + new String(billing.getAddress()));
-                                System.out.println("Card Type: " + new String(billing.getCardType()));
-                                System.out.println("Card Number: (Ending with) " + billing.getCardNumber() % 100);
-                                System.out.println("Card Expiry Date: " + new String(billing.getCardExpiryDate()));
-                                System.out.println("Phone number: " + billing.getPhoneNumber());
-                            } else if (cmd[0].compareToIgnoreCase("edit") == 0) {
-                                if (cmd[1].compareToIgnoreCase("cart") == 0) {
-                                    int index = Integer.parseInt(cmd[2]);
-                                    int update = Integer.parseInt(cmd[3]);
-                                    if (update == 0) {
-                                        cart.remove(index);
-                                    } else {
-                                        cart.get(index).setQuantity(update);
-                                    }
-                                } else if (cmd[1].compareToIgnoreCase("billinginfo") == 0) {
-                                    if (cmd[2].compareToIgnoreCase("cardnumber") == 0) {
-                                        sql.modifyData("UPDATE BillingInfo SET CardNumber = " + Long.parseLong(cmd[3]) + "WHERE Id = " + billing.getID());
-                                        billing.setCardNumber(Long.parseLong(cmd[3]));
-                                    } else if (cmd[2].compareToIgnoreCase("cardtype") == 0) {
-                                        sql.modifyData("UPDATE BillingInfo SET CartType = " + cmd[3] + "WHERE Id = " + billing.getID());
-                                        billing.setCardType(cmd[3]);
-                                    } else if (cmd[2].compareToIgnoreCase("cardexpriydate") == 0) {
-                                        sql.modifyData("UPDATE BillingInfo SET CardExpiryDate = " + cmd[3] + "WHERE Id = " + billing.getID());
-                                        billing.setCardExpiryDate(cmd[3]);
-                                    } else if (cmd[2].compareToIgnoreCase("address") == 0) {
-                                        sql.modifyData("UPDATE BillingInfo SET Address = " + cmd[3] + "WHERE Id = " + billing.getID());
-                                        for (int i = 3; i < cmd.length; i++) {
-                                            billing.setAddress(cmd[i]);
-                                        }
-                                    } else if (cmd[2].compareToIgnoreCase("phonenumber") == 0) {
-                                        sql.modifyData("UPDATE BillingInfo SET PhoneNumber = " + Long.parseLong(cmd[3]) + "WHERE Id = " + billing.getID());
-                                        billing.setPhoneNumber(Long.parseLong(cmd[3]));
-                                    } else {
-                                        System.out.println("Invalid command.");
-                                        System.out.println(usage);
-                                    }
-                                } else {
-                                    System.out.println("Invalid command.");
-                                    System.out.println(usage);
-                                }
-                            } else if (cmd[0].compareToIgnoreCase("show") == 0) {
-                                if (cmd[1].compareToIgnoreCase("cart") == 0) {
-                                    System.out.println("------------------------Cart-----------------------");
-                                    System.out.printf("%-20s |\t %-20s |\t %-20s |\t %-20s |\t %-10s |\t %-12s |\t %-12s",
-                                            "Item Name", "Company Name", "Item ID", "Seller ID", "Quantity", "Price", "Total Price");
-                                    for (int i = 0; i < cart.size(); i++) {
-                                        sql.closeConnection();
-                                        sql.openConnection();
-                                        sql.getTable("SELECT * FROM Item WHERE ItemId = " + cart.get(i).getItemID()
-                                                + " AND SellerId = " + cart.get(i).getSellerID());
-                                        if (sql.next()) {
-                                            item = sql.getItem();
-                                        }
-                                        sql.closeConnection();
-                                        sql.openConnection();
-                                        sql.getTable("SELECT * FROM Seller WHERE Id = " + cart.get(i).getSellerID());
-                                        if (sql.next()) {
-                                            seller = sql.getSeller();
-                                        }
-                                        sql.closeConnection();
-                                        sql.openConnection();
-
-                                        System.out.printf("%-20s  \t %-20s  \t %-20d  \t %-20d  \t %10d  \t %10.2f  \t %10.2f",
-                                                new String(item.getItemName()), new String(seller.getCompanyName()), cart.get(i).getItemID(), cart.get(i).getSellerID(),
-                                                cart.get(i).getQuantity(), cart.get(i).getPrice(), cart.get(i).getTotalPrice());
-                                    }
-
-                                    System.out.println("-----------------------------------------------------");
-                                } else if (cmd[1].compareToIgnoreCase("orders") == 0) {
-                                    System.out.println("-----------------------Orders-----------------------");
-                                    System.out.printf("%-10s |\t %-10s |\t %-20s |\t %-10s |\t %10s |\t %10.2f |\t %9s\n",
-                                            "Order ID", "Item ID", "Item Name", "Seller ID", "Quantity", "Price", "Ordered Date");
-
-                                    sql.closeConnection();
-                                    sql.openConnection();
-                                    sql.getTable("SELECT * FROM Orders WHERE CustomerId = " + customer.getID());
-                                    while (sql.next()) {
-                                        order.add(sql.getOrders());
-                                    }
-                                    sql.closeConnection();
-                                    sql.openConnection();
-                                    for (int i = 0; i < order.size(); i++) {
-                                        sql.getTable("SELECT * FROM Ordered WHERE OrderId = " + order.get(i).getID());
-                                        while (sql.next()) {
-                                            ordered.add(sql.getOrdered());
-                                        }
-                                        sql.closeConnection();
-                                        sql.openConnection();
-                                    }
-                                    for (int i = 0; i < order.size(); i++) {
-                                        int index = 0;
-                                        sql.getTable("SELECT * FROM Item WHERE Id = " + ordered.get(i).getItemID() + " AND " + ordered.get(i).getSellerID());
-                                        item = sql.getItem();
-                                        sql.closeConnection();
-                                        sql.openConnection();
-                                        for (int j = 0; j < order.size(); j++) {
-                                            if (order.get(j).getID() == ordered.get(i).getOrderID()) {
-                                                index = j;
-                                                break;
-                                            }
-                                        }
-                                        System.out.printf("%-10d  \t %-10d  \t %-20s  \t %-10d  \t %-10d  \t %10.2f  \t %10.2f  \t %9s",
-                                                ordered.get(i).getOrderID(), ordered.get(i).getItemID(), item.getItemName(), ordered.get(i).getSellerID(), ordered.get(i).getQuantity(),
-                                                ordered.get(i).getPrice(), ordered.get(i).getPrice() * ordered.get(i).getQuantity(), df.format(order.get(index).getOrderDate()));
-                                    }
-                                } else {
-                                    System.out.println("Invalid command.");
-                                    System.out.println(usage);
-                                }
-                            } else if (cmd[0].compareToIgnoreCase("add") == 0) {
-                                Item itm = new Item();
-                                itm.setID(Integer.parseInt(cmd[2]));
-                                itm.setSellerID(Integer.parseInt(cmd[3]));
-                                sql.closeConnection();
-                                sql.openConnection();
-                                sql.getTable("SELECT * FROM Item WHERE Id = " + itm.getID() + " AND SellerId = " + itm.getSellerID());
-                                if (sql.next()) {
-                                    item = sql.getItem();
-                                }
-                                sql.closeConnection();
-                                sql.openConnection();
-                                cart.add(new ShoppingCart(customer.getID(), itm.getID(), itm.getSellerID(), Integer.parseInt(cmd[4]), itm.getPrice(), itm.getPrice() * Integer.parseInt(cmd[4])));
-                                sql.insertData(cart.get(cart.size() - 1));
-                            } else if (cmd[0].compareToIgnoreCase("checkout") == 0) {
-                                Orders or;
-                                Ordered od;
-                                or = new Orders();
-                                or.setCustomerID(customer.getID());
-                                or.setBillingInfoID(billing.getID());
-                                or.setOrderDate(new Date());
-                                sql.insertData(or);
-                                sql.closeConnection();
-                                sql.openConnection();
-                                sql.getTable("SELECT * FROM Orders WHERE CustomerId = " + customer.getID());
-                                while (sql.next()) {
-                                    or = sql.getOrders();
-                                }
-                                sql.closeConnection();
-                                sql.openConnection();
-                                for (int i = 0; i < cart.size(); i++) {
-                                    sql.modifyData("UPDATE Inventory SET Quantity = Quantity - " + cart.get(i).getQuantity()
-                                            + " WHERE ItemId = " + cart.get(i).getItemID() + " AND SellerId = " + cart.get(i).getSellerID());
-
-                                    od = new Ordered(or.getID(), cart.get(i).getItemID(), cart.get(i).getSellerID(),
-                                            cart.get(i).getQuantity(), cart.get(i).getPrice());
-                                    sql.insertData(od);
-                                }
-                            } else if (cmd[0].compareToIgnoreCase("logout") == 0) {
-                                break;
-                            } else {
-                                System.out.println("Invalid command.");
-                                System.out.println(usage);
-                            }
-                        }
-                        break;
-                    } else if (user.getSellerID() > 0) {
-                        // if user is a seller
-
-                        break;
-                    } else {
-                        // invalid username or password
-                        System.out.println("Invalid username or password. \nCreate a new account?");
-                        result = sc.nextLine();
-                        if (result.compareToIgnoreCase("yes") == 0) {
-                            createAccount();
-                        }
-                    }
-                }
-            } else if (result.compareToIgnoreCase("no") == 0) {
-                createAccount();
-            } else {
-                System.out.println("Invalid Option");
+        
+        Button btn = new Button();
+        btn.setText("Say 'Hello World'");
+        btn.setOnAction(new EventHandler<ActionEvent>() {
+            
+            @Override
+            public void handle(ActionEvent event) {
+                System.out.println("Hello World!");
             }
-            System.out.println("");
-        }
-    }
-
-    public static void setupCustomer() {
-
-        sql.getTable("SELECT * FROM Customers WHERE Id = " + user.getCustomerID());
-        if (sql.next()) {
-            customer = sql.getCustomer();
-        }
-        sql.closeConnection();
-        sql.openConnection();
-    }
-
-    public static void login() {
-        String result = new String();
-        Scanner sc = new Scanner(System.in);
-        System.out.print("\nUsername: ");
-        user.setUsername(sc.nextLine());
-        System.out.print("\nPassword: ");
-        user.setPassword(sc.nextLine());
-    }
-
-    public static void createAccount() {
-        String res = new String();
-        Scanner sc = new Scanner(System.in);
-
-        System.out.print("\nAre you a seller or customer? ");
-        res = sc.nextLine();
-        while (true) {
-            if (res.compareToIgnoreCase("seller") == 0) {
-                while (true) {
-                    System.out.print("\nUsername: ");
-                    user.setUsername(sc.nextLine());
-                    sql.closeConnection();
-                    sql.openConnection();
-                    sql.getTable("SELECT * FROM User WHERE Username = " + new String(user.getUsername()));
-                    if (sql.next()) {
-                        continue;
-                    }
-                    sql.closeConnection();
-                    sql.openConnection();
+        });
+        
+        StackPane root = new StackPane();
+        root.getChildren().add(btn);
+        
+        Scene scene = new Scene(root, 300, 250);
+        
+        primaryStage.setTitle("Hello World!");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+        
+        
+        /*
+            Where Customer--ShoppingCart--Item interacts
+        */
+        
+        // if user is a customer
+//        if (user.getCustomerID() > 0){
+//            
+//            // retreive user db info
+//            sql.getTable("SELECT * FROM User WHERE Username = " + new String(user.getUsername()));
+//            if (sql.next()){
+//                user = sql.getUser();
+//                sql.closeResultSet();
+//            }
+//            
+//            // retreive customer db info
+//            sql.getTable("SELECT * FROM Customer WHERE Id = " + user.getCustomerID());
+//            if (sql.next()){
+//                customer = sql.getCustomer();
+//                sql.closeResultSet();
+//            }
+//            
+//            // retreive shopping cart db info
+//            sql.getTable("SELECT * FROM ShoppingCart WHERE CustomerId = " + customer.getID());
+//            while (sql.next()){
+//                cart.add(sql.getShoppingCart());
+//            }
+//            
+//            // retreive billing info db
+//            sql.getTable("SELECT * FROM BillingInfo WHERE Id = " + customer.getBillingInfoID());
+//            if (sql.next()){
+//                billing = sql.getBillingInfo();
+//                sql.closeResultSet();
+//            }
+//        }
+//        else {  // user is a seller
+//            // retreive user info db
+//            sql.getTable("SELECT * FROM User WHERE Username = " + new String(user.getUsername()));
+//            if (sql.next()){
+//                user = sql.getUser();
+//                sql.closeResultSet();
+//            }
+//            
+//            // retreive seller info db
+//            sql.getTable("SELECT * FROM Seller WHERE Id = " + user.getSellerID());
+//            if (sql.next()){
+//                seller = sql.getSeller();
+//                sql.closeResultSet();
+//            }
+//            
+//            // retreive billing info db
+//            sql.getTable("SELECT * FROM BillingInfo WHERE Id = " + seller.getID());
+//            if (sql.next()){
+//                billing = sql.getBillingInfo();
+//            }
+//        }
+        
+        
+        // if (Customer adds an item to shoppingcart){
+            cart.add((new ShoppingCart(customer.getID(), item.getID(), item.getSellerID(), 1, item.getPrice(), item.getPrice())));
+            sql.insertData(cart.get(cart.size()-1));
+        // }
+            
+        // if (Customer deletes an item to shoppingcart){
+            sql.modifyData("DELETE FROM ShoppingCart WHERE CustomerId = " + customer.getID() 
+                    + "AND ItemId=" + item.getID());
+            for(int i=0;i<cart.size();i++){
+                if (item.getID() == cart.get(i).getItemID()){
+                    cart.remove(i);
                     break;
                 }
-
-                System.out.print("\nPassword: ");
-                user.setPassword(sc.nextLine());
-                System.out.print("\nCompany Name: ");
-                seller.setCompanyName(sc.nextLine());
-                System.out.print("\nAddress: ");
-                billing.setAddress(sc.nextLine());
-                System.out.print("\nCard Type: ");
-                billing.setCardType(sc.nextLine());
-                System.out.print("\nCard Number: (no dashes, only numbers) ");
-                billing.setCardNumber(sc.nextLong());
-                System.out.print("\nCard Expiry Date: (MM/YY) ");
-                billing.setCardExpiryDate(sc.nextLine());
-                System.out.print("\nPhone Number: (only numbers)");
-                billing.setPhoneNumber(sc.nextLong());
-
-                sql.insertData(billing);
-                sql.closeConnection();
-                sql.openConnection();
-                sql.getTable("SELECT * FROM BillingInfo WHERE CardNumber = "
-                        + billing.getCardNumber() + "AND Address = '" + new String(billing.getAddress()) + "'");
-                if (sql.next()) {
-                    billing = sql.getBillingInfo();
-                    seller.setBillingInfoID(billing.getID());
-                    sql.closeResultSet();
-                }
-                sql.insertData(seller);
-                sql.closeConnection();
-                sql.openConnection();
-                sql.getTable("SELECT * FROM Seller WHERE BillingInfoId = "
-                        + seller.getBillingInfoID());
-                if (sql.next()) {
-                    seller = sql.getSeller();
-                    user.setSellerID(seller.getID());
-                    sql.closeResultSet();
-                }
-                sql.insertData(user);
-                sql.closeConnection();
-                sql.openConnection();
-
-                return;
-            } else if (res.compareToIgnoreCase("customer") == 0) {
-                while (true) {
-                    System.out.print("\nUsername: ");
-                    user.setUsername(sc.nextLine());
-                    sql.getTable("SELECT * FROM User WHERE Username = " + new String(user.getUsername()));
-                    if (sql.next()) {
-                        continue;
-                    }
+            }
+        // }
+        
+        // if (Customer changes item quantity in shopping cart){
+            int quantity = 0;
+            // quantity = result from input;
+            for (int i=0;i<cart.size();i++){
+                if (item.getID() == cart.get(i).getItemID()){
+                    cart.get(i).setQuantity(quantity);
+                    cart.get(i).setTotalPrice(i*cart.get(i).getPrice());
+                    sql.modifyData("UPDATE ShoppingCart SET Quantity = " + quantity + ", TotalPrice = "
+                            + cart.get(i).getTotalPrice() + " WHERE CustomerId = " + customer.getID()
+                            + "AND ItemId = " + item.getID());
                     break;
                 }
-                System.out.print("\nPassword: ");
-                user.setPassword(sc.nextLine());
-                System.out.print("\nFirst Name: ");
-                customer.setFirstName(sc.nextLine());
-                System.out.print("\nLast Name: ");
-                customer.setLastName(sc.nextLine());
-                System.out.print("\nEmail: ");
-                customer.setEmail(sc.nextLine());
-                System.out.print("Address: ");
-                billing.setAddress(sc.nextLine());
-                System.out.print("\nCard Type: ");
-                billing.setCardType(sc.nextLine());
-                System.out.print("\nCard Number: (no dashes, only numbers)");
-                billing.setCardNumber(sc.nextLong());
-                System.out.print("\nCard Expiry Date: (MM/YY)");
-                billing.setCardExpiryDate(sc.nextLine());
-                System.out.print("\nPhone Number: (only numbers)");
-                billing.setPhoneNumber(sc.nextLong());
-
-                sql.insertData(billing);
-                sql.getTable("SELECT * FROM BillingInfo WHERE CardNumber = "
-                        + billing.getCardNumber() + "AND Address = '" + new String(billing.getAddress()) + "'");
-                if (sql.next()) {
-                    billing = sql.getBillingInfo();
-                    customer.setBillingInfoID(billing.getID());
-                    sql.closeResultSet();
-                }
-                sql.insertData(customer);
-                sql.closeConnection();
-                sql.openConnection();
-                sql.getTable("SELECT * FROM Customers WHERE BillingInfoId = "
-                        + billing.getID());
-                if (sql.next()) {
-                    customer = sql.getCustomer();
-                    user.setCustomerID(customer.getID());
-                    sql.closeResultSet();
-                }
-                sql.insertData(user);
-                sql.closeConnection();
-                sql.openConnection();
-
-                return;
             }
-        }
+        // }
+        
+        // if (Customer checks out cart){
+            // add to Orders db and instance
+            order.setOrderDate(new Date());
+            order.setCustomerID(customer.getID());
+            order.setBillingInfoID(billing.getID());
+            sql.insertData(order);
+            
+            // add to Ordered db and variable, while deleting shopping cart db and instance along with decreasing Inventory quantity
+            while (!cart.isEmpty()){
+                ordered.add(new Ordered(order.getID(), cart.get(0).getItemID()));
+                sql.insertData(ordered.get(ordered.size()-1));
+                
+                sql.modifyData("DELETE FROM ShoppingCart WHERE CustomerId = " + cart.get(0).getCustomerID() 
+                        + " AND ItemId = " + cart.get(0).getItemID());
+                sql.modifyData("UPDATE Inventory SET Quantity = Quantity - " + cart.get(0).getQuantity() 
+                        + " WHERE ItemId = " + cart.get(0).getItemID() + " AND SellerId = " 
+                        + cart.get(0).getSellerID());
+                cart.remove(0);
+            }
+            
+            // get shipping info from ui
+                sql.insertData(shipping);
+        // }
+            
+        // if (a seller puts items up for sale){
+            // item and inventory will be filled with input from ui...
+            
+            // add to Item db
+            sql.insertData(item);
+            // now add item to Inventory db
+            sql.insertData(inventory);
+        // }
+        
+        // if (seller changes price of item){
+           sql.modifyData("UPDATE Inventory SET Price = " + inventory.getPrice() 
+                   + "WHERE ItemId = " + inventory.getItemID() + "AND SellerId = "
+                   + inventory.getSellerID());
+           
+           sql.modifyData("UPDATE Item SET Price " + inventory.getPrice() +
+                   " WHERE Id = " + inventory.getItemID() 
+                   + "AND SellerId = " + inventory.getSellerID());
+           
+           // check if item is already in a shopping cart; if true update price
+            sql.getTable("SELECT * FROM ShoppingCart WHERE ItemId = " + inventory.getItemID()
+                    + " AND SellerId = " + inventory.getSellerID());
+            while (sql.next()){
+                ShoppingCart sc = sql.getShoppingCart();
+                // maybe close resultset
+                // sql.closeResultSet();
+                // maybe close statement
+                sql.modifyData("UPDATE ShoppingCart SET Price = " + inventory.getPrice()
+                        + " WHERE ItemId = " + sc.getItemID() + " AND CustomerId = "
+                        + sc.getCustomerID());
+                
+                // possible alert for customer price has changed
+            }
+        // }
+        
+        // if (seller changes quantity of an item) {
+            sql.modifyData("Update Inventory SET Quantity = " + inventory.getQuantity()
+                    + "WHERE ItemId = " + inventory.getItemID() + " AND SellerId = "
+                    + inventory.getSellerID());
+        // }
+        
+        // if (customer leaves a review){
+            // obtain review info from ui
+            
+            // add review to db
+            sql.insertData(review);
+        // }
+        
+//        // if (creating a new account){
+//            // fill in billing
+//            sql.insertData(billing);
+//            
+//            //if (seller) {
+//                // fill in seller
+//                sql.insertData(seller);
+//                sql.closeConnection();
+//                sql.openConnection();
+//                sql.getTable("SELECT * FROM Seller WHERE BillingInfoId = " 
+//                        + billing.getID());
+//                if (sql.next()){
+//                    seller = sql.getSeller();
+//                    sql.closeResultSet();
+//                }
+//                sql.closeConnection();
+//                sql.openConnection();
+//                user.setSellerID(seller.getID());
+//                // user.setUsername();
+//                // user.setPassword();
+//            // }
+//            // else if customer {
+//                // fill in customer
+//                sql.insertData(customer);
+//                sql.closeConnection();
+//                sql.openConnection();
+//                sql.getTable("SELECT * FROM Customers WHERE BillingInfoId = " 
+//                        + billing.getID());
+//                if (sql.next()){
+//                    customer = sql.getCustomer();
+//                    sql.closeResultSet();
+//                }
+//                sql.closeConnection();
+//                sql.openConnection();
+//                user.setCustomerID(customer.getID());
+//                // user.setUsername();
+//                // user.setPassword();
+//            // }
+//        // }
+//        
+//        // FOR THE CUSTOMER ITEM TABLE
+//        sql.closeConnection();
+//        sql.openConnection();
+//        sql.getTable("SELECT * FROM Items");
+//        while (sql.next()){
+//            item = sql.getItem();
+//            CustomerTable ct = new CustomerTable();
+//            ct.setProductName(item.getItemName());
+//            ct.setProductPrice(item.getPrice());
+//            ct.setProductDescription(item.getDescription());
+//            ct.setItemID(item.getID());
+//            ct.setSellerID(item.getSellerID());
+//        }
+//        ct.forEach(x -> {
+//            sql.getTable("SELECT * FROM Seller WHERE Id = " + x.getSellerID());
+//            if (sql.next()){
+//                seller = sql.getSeller();
+//                x.setCompanyName(seller.getCompanyName());
+//            }
+//            sql.getTable("SELECT * FROM Inventory WHERE ItemId = " + x.getItemID() + " AND SellerId = " + x.getSellerID());
+//            inventory = sql.getInventory();
+//            if (inventory.getQuantity() > 0){
+//                x.setInStock(true);
+//            }
+//            else{
+//                x.setInStock(false);
+//            }
+//        })
+//        //
+                
     }
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args){     
+        
+        launch(args);
+    }
+    
 }

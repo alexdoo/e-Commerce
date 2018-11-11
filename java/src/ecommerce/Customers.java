@@ -7,6 +7,7 @@ public class Customers
 	private char[] lastName;
 	private char[] firstName;
 	private char[] email;
+	private int shoppingCartID;
 	private int billingInfoID;
 	
 	public Customers() {
@@ -15,15 +16,17 @@ public class Customers
 		lastName = new char[20];
 		firstName = new char[20];
 		email = new char[40];
+		shoppingCartID = 0;
 		billingInfoID = 0;
 	}
 	
-	public Customers(int IDArg, char[] lastNameArg, char[] firstNameArg, char [] emailArg, int billingInfoIDArg){
+	public Customers(int IDArg, char[] lastNameArg, char[] firstNameArg, char [] emailArg, int shoppingCartIDArg, int billingInfoIDArg){
 		//full
 		this.ID = IDArg;
 		this.lastName = lastNameArg;
 		this.firstName = firstNameArg;
 		this.email = emailArg;
+		this.shoppingCartID = shoppingCartIDArg;
 		this.billingInfoID = billingInfoIDArg;
 	}
 	
@@ -59,6 +62,14 @@ public class Customers
 		email = emailArg.toCharArray();
 	}
 	
+	public int getShoppingCartID(){
+		return shoppingCartID;
+	}
+	
+	public void setShoppingCartID(int shoppingCartIDArg){
+		shoppingCartID = shoppingCartIDArg;
+	}
+	
 	public int getBillingInfoID(){
 		return billingInfoID;
 	}
@@ -69,6 +80,6 @@ public class Customers
 
         @Override
 	public String toString(){
-		return billingInfoID + ", '" + Arrays.toString(lastName) + "', '" + Arrays.toString(firstName) + "', '" + Arrays.toString(email) + "'";
+		return ID + ", " + shoppingCartID + ", " + billingInfoID + ", " + Arrays.toString(lastName) + ", " + Arrays.toString(firstName) + ", " + Arrays.toString(email);
 	}
 }

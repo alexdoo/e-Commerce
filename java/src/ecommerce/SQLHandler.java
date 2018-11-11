@@ -22,8 +22,9 @@ public class SQLHandler {
             // Registering the JDBC driver
 //            Class<?> forName = Class.forName("com.mysql.jdbc.Driver");
             DriverManager.registerDriver((Driver) Class.forName("com.mysql.jdbc.Driver").newInstance());
+            System.out.println("Connecting to database...");
             // Connect to database
-            connect = DriverManager.getConnection("jdbc:mysql://localhost:8080?autoReconnect=true&useSSL=false", "username", "password");
+            connect = DriverManager.getConnection("jdbc:mysql://localhost:8080/test?autoReconnect=true&useSSL=false", "username", "password");
             // create statment to execute
             statement = connect.createStatement();
         } catch (SQLException sqle) {
@@ -40,6 +41,7 @@ public class SQLHandler {
         try{
             statement.executeUpdate(query);
         } catch (SQLException ex){
+            ex.printStackTrace(System.out);
         }
     }
     
@@ -64,9 +66,7 @@ public class SQLHandler {
     public boolean next(){
         boolean result = false;
         try { 
-            if (resultSet != null){
-                result = resultSet.next();
-            }
+            result = resultSet.next();
         } catch (SQLException ex) {
             ex.printStackTrace(System.out);
         }
@@ -85,20 +85,14 @@ public class SQLHandler {
     public Item getItem(){
         Item item = new Item();
         try{
-            String res;
             item.setID(resultSet.getInt("Id"));
             item.setSellerID(resultSet.getInt("SellerId"));
             item.setCategoryID(resultSet.getInt("CategoryId"));
             item.setPrice(resultSet.getDouble("Price"));
-            res = resultSet.getString("ItemName");
-            item.setItemName(res);
-            res = resultSet.getString("Description");
-            item.setDescription(res);
-                
+            item.setItemName(resultSet.getString("ItemName"));
+            item.setDescription(resultSet.getString("Description"));
         }catch (SQLException ex){
             ex.printStackTrace(System.out);
-        }catch (NullPointerException ex){
-                System.out.print("");
         }
         
         return item;
@@ -187,14 +181,11 @@ public class SQLHandler {
         return order;
     }
     
-    public Ordered getOrdered(){
+    public Ordered getOrderd(){
         Ordered order = new Ordered();
         try{
             order.setOrderID(resultSet.getInt("OrderId"));
             order.setItemID(resultSet.getInt("ItemId"));
-            order.setSellerID(resultSet.getInt("SellerId"));
-            order.setQuantity(resultSet.getInt("Quantity"));
-            order.setPrice(resultSet.getDouble("Price"));
         } catch (SQLException ex){
             ex.printStackTrace(System.out);
         }
